@@ -1,0 +1,53 @@
+# RectlessOS 0.1.0
+
+Своя ОС на базе Linux (Ubuntu 24.04 + XFCE), которая запускается прямо с флешки на реальном ПК
+(UEFI и старый BIOS). Схема флешки: **sys** (система) / **root** (настройки и программы) /
+**user** (твои файлы) — см. [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Что в папке
+
+| Файл | Зачем |
+|------|-------|
+| `build.sh` | собирает ISO с нуля (Ubuntu/Debian или WSL2, от root) |
+| `tools/make-image.sh` | делает из ISO готовый образ флешки `.img` (для Windows: пишется Etcher/Rufus) |
+| `tools/write-usb.sh` | записывает ISO сразу на флешку по схеме sys/root/user (Linux) |
+| `tools/bios-embed.py` | ставит загрузчик для старого BIOS (вызывается скриптами выше) |
+| `config/` | списки пакетов (что входит в систему) |
+| `overlay/` | файлы, которые кладутся в систему: обои, автовход, раскладка, язык, авторасширение user |
+| `assets/` | `RectlessOS.ico` и логотип |
+| `.github/workflows/build.yml` | облачная сборка образа флешки на GitHub, если Linux нет |
+
+## Путь для Windows (образ флешки готовится в облаке)
+
+1. Создай репозиторий на github.com и загрузи в него содержимое этого архива (распакованное).
+2. Вкладка **Actions** → **Build RectlessOS** → **Run workflow**. Через 10-20 минут внизу страницы запуска
+   появится артефакт `RectlessOS-flash-image` (внутри `RectlessOS-0.1.0.img.xz`, около 1,5 ГБ).
+3. Скачай, распакуй zip. Открой `RectlessOS-0.1.0.img.xz` в **balenaEtcher** (распаковывать не надо)
+   или в **Rufus**, выбери флешку, запиши. Флешка будет полностью стёрта.
+4. При первом запуске раздел user сам растянется на всю флешку.
+
+## Путь для Linux или WSL2
+
+```bash
+sudo bash build.sh                                           # даёт out/RectlessOS-0.1.0-desktop.iso
+sudo apt install gdisk dosfstools e2fsprogs mtools grub-pc-bin grub-efi-amd64-bin grub-common parted xorriso python3
+lsblk                                                     # найди флешку, например /dev/sdb. Ошибёшься, сотрёшь не тот диск!
+sudo bash tools/write-usb.sh out/RectlessOS-0.1.0-desktop.iso /dev/sdb    # сразу на флешку
+# или образом: sudo bash tools/make-image.sh out/RectlessOS-0.1.0-desktop.iso  -> out/RectlessOS-0.1.0.img
+```
+
+Размер root задаётся `ROOT_GB=24` (по умолчанию 16 ГБ при записи на флешку и 6 ГБ в образе;
+всё остальное идёт под user).
+
+## Запуск
+
+Вставь флешку, включи ПК и открой меню выбора загрузки (обычно F12, F11, Esc или F8), выбери флешку.
+В меню GRUB выбери первый пункт. Вход автоматический (пользователь `user`, без пароля).
+Если Secure Boot включён, отключи его в BIOS: загрузчик не подписан.
+
+## Параметры сборки
+
+```bash
+sudo PROFILE=minimal bash build.sh   # только консоль, для проверки
+sudo OS_NAME=Name bash build.sh      # поменять название (латиницей)
+```

@@ -1,0 +1,21 @@
+name: Build RectlessOS
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ISO
+        run: sudo bash build.sh
+      - name: Make flash drive image
+        run: |
+          sudo apt-get install -y gdisk dosfstools e2fsprogs mtools grub-pc-bin grub-efi-amd64-bin grub-common parted xorriso python3
+          sudo bash tools/make-image.sh out/RectlessOS-0.1.0-desktop.iso
+          sudo xz -T0 -3 out/RectlessOS-0.1.0.img
+          sudo rm -f out/RectlessOS-0.1.0-desktop.iso
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RectlessOS-flash-image
+          path: out/*.img.xz
+          compression-level: 0

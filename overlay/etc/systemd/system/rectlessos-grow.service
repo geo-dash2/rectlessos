@@ -1,0 +1,10 @@
+[Unit]
+Description=RectlessOS: grow the user partition to fill the USB drive
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/rectlessos-grow
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+#!/bin/bash
+# Растягивает раздел user (метка home-rw) на всё свободное место флешки.
+# Безопасно запускать при каждой загрузке: если растягивать нечего, ничего не меняется.
+dev="$(blkid -L home-rw 2>/dev/null)" || exit 0
+base="$(basename "$dev")"
+disk="/dev/$(lsblk -no PKNAME "$dev" | head -1)"
+num="$(cat "/sys/class/block/$base/partition" 2>/dev/null)" || exit 0
+[ -b "$disk" ] && [ -n "$num" ] || exit 0
+growpart "$disk" "$num" >/dev/null 2>&1 || true   # код 1 = менять нечего
+resize2fs "$dev" >/dev/null 2>&1 || true
+exit 0
