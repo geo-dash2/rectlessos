@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=RectlessOS session setup
+Exec=bash /usr/local/bin/rectlessos-session-setup
+OnlyShowIn=XFCE;
+NoDisplay=true

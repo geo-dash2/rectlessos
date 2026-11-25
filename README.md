@@ -1,4 +1,4 @@
-# RectlessOS 0.1.0
+# RectlessOS 0.2.0
 
 Своя ОС на базе Linux (Ubuntu 24.04 + XFCE), которая запускается прямо с флешки на реальном ПК
 (UEFI и старый BIOS). Схема флешки: **sys** (система) / **root** (настройки и программы) /
@@ -21,19 +21,19 @@
 
 1. Создай репозиторий на github.com и загрузи в него содержимое этого архива (распакованное).
 2. Вкладка **Actions** → **Build RectlessOS** → **Run workflow**. Через 10-20 минут внизу страницы запуска
-   появится артефакт `RectlessOS-flash-image` (внутри `RectlessOS-0.1.0.img.xz`, около 1,5 ГБ).
-3. Скачай, распакуй zip. Открой `RectlessOS-0.1.0.img.xz` в **balenaEtcher** (распаковывать не надо)
+   появится артефакт `RectlessOS-flash-image` (внутри `RectlessOS-0.2.0.img.xz`, около 1,5 ГБ).
+3. Скачай, распакуй zip. Открой `RectlessOS-0.2.0.img.xz` в **balenaEtcher** (распаковывать не надо)
    или в **Rufus**, выбери флешку, запиши. Флешка будет полностью стёрта.
 4. При первом запуске раздел user сам растянется на всю флешку.
 
 ## Путь для Linux или WSL2
 
 ```bash
-sudo bash build.sh                                           # даёт out/RectlessOS-0.1.0-desktop.iso
+sudo bash build.sh                                           # даёт out/RectlessOS-0.2.0-desktop.iso
 sudo apt install gdisk dosfstools e2fsprogs mtools grub-pc-bin grub-efi-amd64-bin grub-common parted xorriso python3
 lsblk                                                     # найди флешку, например /dev/sdb. Ошибёшься, сотрёшь не тот диск!
-sudo bash tools/write-usb.sh out/RectlessOS-0.1.0-desktop.iso /dev/sdb    # сразу на флешку
-# или образом: sudo bash tools/make-image.sh out/RectlessOS-0.1.0-desktop.iso  -> out/RectlessOS-0.1.0.img
+sudo bash tools/write-usb.sh out/RectlessOS-0.2.0-desktop.iso /dev/sdb    # сразу на флешку
+# или образом: sudo bash tools/make-image.sh out/RectlessOS-0.2.0-desktop.iso  -> out/RectlessOS-0.2.0.img
 ```
 
 Размер root задаётся `ROOT_GB=24` (по умолчанию 16 ГБ при записи на флешку и 6 ГБ в образе;
@@ -51,3 +51,12 @@ sudo bash tools/write-usb.sh out/RectlessOS-0.1.0-desktop.iso /dev/sdb    # ср
 sudo PROFILE=minimal bash build.sh   # только консоль, для проверки
 sudo OS_NAME=Name bash build.sh      # поменять название (латиницей)
 ```
+
+
+## Что нового в 0.2.0 — оформление
+- Тёмная фиолетово-чёрная тема (Rectless-dark) для окон, верхней и нижней панелей.
+- Верхняя панель заменена «островком» (Dynamic Island): маленькая таблетка сверху по центру — звук, дата/время, трей, питание, выход.
+- Нижняя панель — компактный тёмный док по центру: кнопка R, Файлы, Терминал, Браузер и открытые окна.
+- Тёмные иконки Papirus-Dark с фиолетовыми папками, на рабочем столе только «Домашняя папка» и «Корзина».
+- Маленький тёмный курсор (DMZ-Black, размер 20).
+- Secure Boot по-прежнему нужно выключить (подписанный загрузчик — в планах).

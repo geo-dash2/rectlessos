@@ -28,3 +28,14 @@ adwaita-icon-theme
 gnome-themes-extra
 gparted
 htop
+
+# оформление RectlessOS
+materia-gtk-theme
+papirus-icon-theme
+dmz-cursor-theme
+librsvg2-common
+xfce4-whiskermenu-plugin
+xfce4-pulseaudio-plugin
+xfce4-power-manager-plugins
+xfce4-notifyd
+x11-xserver-utils

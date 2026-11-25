@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Браузер
+Comment=Интернет
+Exec=epiphany %U
+Icon=org.gnome.Epiphany
+StartupNotify=true
+Categories=Network;WebBrowser;

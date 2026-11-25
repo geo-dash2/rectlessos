@@ -1,0 +1,17 @@
+favorites=thunar.desktop,xfce4-terminal.desktop,org.gnome.Epiphany.desktop
+button-icon=/usr/share/pixmaps/rectlessos-logo.png
+button-single-row=true
+show-button-title=false
+show-button-icon=true
+launcher-show-name=true
+launcher-show-description=false
+launcher-icon-size=3
+category-icon-size=1
+item-icon-size=2
+position-search-alternate=true
+position-commands-alternate=false
+menu-width=520
+menu-height=560
+menu-opacity=96
+profile-shape=0
+stay-on-focus-out=false

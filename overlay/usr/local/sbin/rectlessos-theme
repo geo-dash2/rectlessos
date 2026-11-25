@@ -1,0 +1,49 @@
+#!/bin/bash
+# Собирает оформление RectlessOS (запускается один раз при сборке образа, внутри chroot):
+#   * тема Rectless-dark = Materia-dark, перекрашенная в фиолетово-чёрные цвета;
+#   * фиолетовые папки в иконках Papirus.
+set -e
+
+SRC=/usr/share/themes/Materia-dark
+DST=/usr/share/themes/Rectless-dark
+[ -d "$SRC" ] || { echo "нет $SRC"; exit 1; }
+
+rm -rf "$DST"
+cp -a "$SRC" "$DST"
+rm -rf "$DST"/{cinnamon,gnome-shell,plank,unity,chrome,gtk-4.0}
+
+# перекраска: акцент (голубой -> фиолетовый) и серые подложки (серый -> чёрно-фиолетовый)
+find "$DST" -type f \( -name '*.css' -o -name '*.rc' -o -name '*.svg' -o -name 'themerc' -o -name 'gtkrc' -o -name 'index.theme' \) -print0 |
+  xargs -0 sed -i -E \
+    -e 's/#8ab4f8/#a070ff/Ig' \
+    -e 's/#799eda/#8a5ae6/Ig' \
+    -e 's/rgba\(138, 180, 248/rgba(160, 112, 255/Ig' \
+    -e 's/#c58af9/#d29bff/Ig' \
+    -e 's/rgba\(197, 138, 249/rgba(210, 155, 255/Ig' \
+    -e 's/#2e2e2e/#1b1726/Ig' \
+    -e 's/#272727/#171320/Ig' \
+    -e 's/#212121/#14101c/Ig' \
+    -e 's/#1e1e1e/#110e19/Ig' \
+    -e 's/#121212/#0b0910/Ig' \
+    -e 's/rgba\(30, 30, 30/rgba(17, 14, 25/Ig' \
+    -e 's/Materia-dark/Rectless-dark/g' \
+    -e 's/^Name=.*/Name=Rectless-dark/'
+
+# дополнения: панели (остров и док), окна
+[ -f /usr/share/rectlessos/theme-extra.css ] && cat /usr/share/rectlessos/theme-extra.css >> "$DST/gtk-3.0/gtk.css"
+
+# фиолетовые папки: ссылки folder-blue* -> folder-violet* (то же делает papirus-folders -C violet)
+for t in Papirus-Dark Papirus; do
+  [ -d "/usr/share/icons/$t" ] || continue
+  find "/usr/share/icons/$t" -type l -path '*/places/*' -print0 | while IFS= read -r -d '' l; do
+    tgt="$(readlink "$l")"
+    case "$tgt" in
+      *blue*)
+        new="${tgt//blue/violet}"
+        [ -e "$(dirname "$l")/$new" ] && ln -sf "$new" "$l"
+        ;;
+    esac
+  done
+  gtk-update-icon-cache -f -q "/usr/share/icons/$t" 2>/dev/null || true
+done
+echo "Оформление готово."

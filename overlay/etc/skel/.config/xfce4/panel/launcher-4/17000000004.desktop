@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Терминал
+Comment=Командная строка
+Exec=xfce4-terminal
+Icon=utilities-terminal
+StartupNotify=true
+Categories=System;TerminalEmulator;

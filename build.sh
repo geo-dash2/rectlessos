@@ -6,7 +6,7 @@
 set -euo pipefail
 
 OS_NAME="${OS_NAME:-RectlessOS}"
-OS_VERSION="${OS_VERSION:-0.1.0}"
+OS_VERSION="${OS_VERSION:-0.2.0}"
 PROFILE="${PROFILE:-desktop}"            # desktop | minimal
 SUITE="${SUITE:-noble}"
 MIRROR="${MIRROR:-http://archive.ubuntu.com/ubuntu}"
@@ -100,7 +100,8 @@ ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf.target
 systemctl enable NetworkManager systemd-resolved 2>/dev/null || true
 command -v lightdm >/dev/null && systemctl enable lightdm 2>/dev/null || true
-chmod +x /usr/local/sbin/rectlessos-grow
+chmod +x /usr/local/sbin/rectlessos-grow /usr/local/sbin/rectlessos-theme /usr/local/bin/rectlessos-session-setup
+[ -d /usr/share/themes/Materia-dark ] && /usr/local/sbin/rectlessos-theme
 systemctl enable rectlessos-grow.service 2>/dev/null || true
 update-initramfs -u -k all
 apt-get clean

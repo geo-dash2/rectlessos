@@ -1,0 +1,20 @@
+#!/bin/bash
+# Ставит обои RectlessOS на каждый монитор один раз (названия мониторов у всех разные,
+# заранее в конфиге их не угадать; xfdesktop сам кладёт туда свою картинку по умолчанию).
+# Дальше выбор пользователя не трогаем — помним, для каких мониторов уже сделали.
+IMG=/usr/share/backgrounds/rectlessos.png
+command -v xrandr >/dev/null && command -v xfconf-query >/dev/null || exit 0
+STATE="$HOME/.config/rectlessos/wallpaper-monitors"
+mkdir -p "$(dirname "$STATE")"; touch "$STATE"
+sleep 3
+for m in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1{print $NF}'); do
+  base="/backdrop/screen0/monitor$m/workspace0"
+  cur="$(xfconf-query -c xfce4-desktop -p "$base/last-image" 2>/dev/null)"
+  # пропускаем, если мы уже ставили обои на этот монитор и пользователь выбрал своё
+  if grep -qxF "$m" "$STATE" && [ -n "$cur" ] && [[ "$cur" != */backgrounds/xfce/* ]]; then continue; fi
+  xfconf-query -c xfce4-desktop -p "$base/last-image"  -n -t string -s "$IMG"
+  xfconf-query -c xfce4-desktop -p "$base/image-style" -n -t int -s 5
+  xfconf-query -c xfce4-desktop -p "$base/color-style" -n -t int -s 0
+  echo "$m" >> "$STATE"
+done
+exit 0
