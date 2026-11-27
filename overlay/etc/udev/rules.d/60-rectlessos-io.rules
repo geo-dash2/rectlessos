@@ -1,0 +1,11 @@
+# USB-флешки и карты: bfq (справедливое распределение, интерфейс не замирает при записи)
+# и увеличенное чтение вперёд (быстрее читается squashfs с флешки)
+ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="sd[a-z]|sd[a-z][a-z]", SUBSYSTEMS=="usb", ATTR{queue/scheduler}="bfq", ATTR{queue/read_ahead_kb}="1024"
+# вращающиеся HDD: bfq
+ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="sd[a-z]|sd[a-z][a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
+# SATA SSD: mq-deadline
+ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="sd[a-z]|sd[a-z][a-z]", ATTR{queue/rotational}=="0", SUBSYSTEMS!="usb", ATTR{queue/scheduler}="mq-deadline"
+# NVMe: без планировщика
+ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="nvme[0-9]*n[0-9]*", ATTR{queue/scheduler}="none"
+# SD/eMMC карты
+ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="mmcblk[0-9]*", ATTR{queue/scheduler}="bfq"

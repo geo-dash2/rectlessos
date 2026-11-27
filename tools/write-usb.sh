@@ -87,6 +87,9 @@ echo "Форматирую..."
 mkfs.vfat -F 32 -n RECTLESS "$P2" >/dev/null
 mkfs.ext4 -q -F -L casper-rw "$P3"     # root: слой изменений системы
 mkfs.ext4 -q -F -L home-rw   "$P4"     # user: /home
+# меньше записей на флешку: noatime + сброс на диск раз в 20 с (читается ядром при каждом монтировании)
+tune2fs -E mount_opts=noatime,commit=20 "$P3" >/dev/null 2>&1 || true
+tune2fs -E mount_opts=noatime,commit=20 "$P4" >/dev/null 2>&1 || true
 
 echo "Копирую систему (несколько минут)..."
 export MTOOLS_SKIP_CHECK=1
@@ -109,6 +112,10 @@ menuentry "$OS_NAME - Start (saves root + user on the USB drive)" {
 }
 menuentry "$OS_NAME - Guest mode (nothing is saved)" {
   linux /$SYS/vmlinuz boot=casper $LMP quiet ---
+  initrd /$SYS/initrd
+}
+menuentry "$OS_NAME - Compatibility mode (simple graphics, no effects)" {
+  linux /$SYS/vmlinuz boot=casper $LMP persistent rectless.gfx=1 quiet ---
   initrd /$SYS/initrd
 }
 menuentry "$OS_NAME - Safe graphics (nomodeset)" {

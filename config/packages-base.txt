@@ -26,3 +26,14 @@ exfatprogs
 parted
 gdisk
 cloud-guest-utils
+
+# 0.3.0: отклик и память
+earlyoom
+systemd-zram-generator
+# 0.3.0: Wi-Fi/USB-адаптеры (Mercusys и др.). Без --no-install-recommends это ставилось бы само
+wpasupplicant
+iw
+rfkill
+wireless-regdb
+usb-modeswitch
+usb-modeswitch-data

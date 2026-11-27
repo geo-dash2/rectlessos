@@ -36,6 +36,8 @@ collect() {
       echo "-- версия --";   cat /etc/issue.net
       echo "-- cmdline --";  cat /proc/cmdline
       echo "-- видеокарты --"; lspci -nnk 2>/dev/null | grep -iE -A4 'vga|3d|display'
+      echo "-- сеть/USB --"; HOME=/tmp /usr/local/bin/rectlessos-net-info 2>&1
+      echo "-- память/zram --"; zramctl 2>&1; swapon --show 2>&1; systemctl is-active earlyoom 2>&1
       echo "-- NVIDIA --"; cat /proc/driver/nvidia/version 2>&1; dpkg -l 2>/dev/null | grep -iE "nvidia" | awk '{print $2,$3}' | head -20
       echo "-- /dev/dri --"; ls -l /dev/dri 2>&1; cat /sys/class/drm/*/status 2>/dev/null | sort | uniq -c
       echo "-- модули видео --"; lsmod 2>/dev/null | grep -iE 'drm|nouveau|amdgpu|radeon|i915|nvidia|simpledrm|efifb|vesafb|fb'

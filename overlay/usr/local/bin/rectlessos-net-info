@@ -1,0 +1,15 @@
+#!/bin/bash
+# Что система видит из сети и USB. Если Wi-Fi адаптер не работает, запусти в терминале:
+#     rectlessos-net-info
+# и пришли вывод (он же сохраняется в ~/rectlessos-net-info.txt).
+OUT="$HOME/rectlessos-net-info.txt"
+{
+  echo "== ядро =="; uname -r
+  echo "== USB-устройства (ищи свой адаптер, формат ID xxxx:xxxx) =="; lsusb
+  echo "== rfkill (блокировки) =="; rfkill list 2>&1
+  echo "== Wi-Fi интерфейсы =="; iw dev 2>&1; iw reg get 2>&1
+  echo "== NetworkManager =="; nmcli -f DEVICE,TYPE,STATE,CONNECTION dev 2>&1
+  echo "== модули Wi-Fi =="; lsmod | grep -iE 'rtw|rtl|8821|8811|8188|8192|cfg80211|mac80211|mt76|ath|brcm'
+  echo "== сообщения ядра =="; dmesg 2>/dev/null | grep -iE 'rtl|rtw|8821|8811|8188|8192|cfg80211|wlan|firmware|modeswitch|usb [0-9-.]+: (New|Product|Manufacturer)' | tail -80
+} 2>&1 | tee "$OUT"
+echo; echo "Сохранено: $OUT"

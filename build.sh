@@ -6,7 +6,7 @@
 set -euo pipefail
 
 OS_NAME="${OS_NAME:-RectlessOS}"
-OS_VERSION="${OS_VERSION:-0.2.3}"
+OS_VERSION="${OS_VERSION:-0.3.0}"
 PROFILE="${PROFILE:-desktop}"            # desktop | minimal
 SUITE="${SUITE:-noble}"
 MIRROR="${MIRROR:-http://archive.ubuntu.com/ubuntu}"
@@ -85,6 +85,12 @@ apt-get install -y --no-install-recommends nvidia-kernel-common-$NV xserver-xorg
 EOF
 fi
 
+log "Ставлю дополнительные модули ядра (zram и часть Wi-Fi драйверов лежат в modules-extra)"
+chroot "$ROOTFS" /usr/bin/env DEBIAN_FRONTEND=noninteractive LC_ALL=C bash <<'EOF' || echo "ВНИМАНИЕ: linux-modules-extra не поставился"
+KVER="$(ls /boot/vmlinuz-* | sort -V | tail -1 | sed 's#.*/vmlinuz-##')"
+apt-get install -y --no-install-recommends "linux-modules-extra-$KVER"
+EOF
+
 log "Накладываю свои файлы и настройки"
 cp -a "$HERE/overlay/." "$ROOTFS/"
 cat > "$ROOTFS/etc/casper.conf" <<EOF
@@ -111,9 +117,9 @@ ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf.target
 systemctl enable NetworkManager systemd-resolved 2>/dev/null || true
 command -v lightdm >/dev/null && systemctl enable lightdm 2>/dev/null || true
-chmod +x /usr/local/sbin/rectlessos-grow /usr/local/sbin/rectlessos-theme /usr/local/sbin/rectlessos-diag /usr/local/sbin/rectlessos-session-guard /usr/local/sbin/rectlessos-session-start /usr/local/sbin/rectlessos-session-stop /usr/local/bin/rectlessos-session-setup
+chmod +x /usr/local/sbin/rectlessos-grow /usr/local/sbin/rectlessos-theme /usr/local/sbin/rectlessos-diag /usr/local/sbin/rectlessos-session-guard /usr/local/sbin/rectlessos-session-start /usr/local/sbin/rectlessos-session-stop /usr/local/bin/rectlessos-session-setup /usr/local/bin/rectlessos-net-info
 [ -d /usr/share/themes/Materia-dark ] && /usr/local/sbin/rectlessos-theme
-systemctl enable rectlessos-grow.service rectlessos-diag.service rectlessos-guard.service 2>/dev/null || true
+systemctl enable rectlessos-grow.service rectlessos-diag.service rectlessos-guard.service earlyoom.service 2>/dev/null || true
 update-initramfs -u -k all
 apt-get clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -154,6 +160,10 @@ menuentry "$OS_NAME - Live (changes are not saved)" {
 }
 menuentry "$OS_NAME - Live with persistence (needs a casper-rw partition)" {
   linux /casper/vmlinuz boot=casper persistent quiet ---
+  initrd /casper/initrd
+}
+menuentry "$OS_NAME - Compatibility mode (simple graphics, no effects)" {
+  linux /casper/vmlinuz boot=casper rectless.gfx=1 quiet ---
   initrd /casper/initrd
 }
 menuentry "$OS_NAME - Safe graphics (nomodeset)" {

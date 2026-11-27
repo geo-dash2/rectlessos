@@ -36,6 +36,9 @@ apply() {
 case "${1:-}" in
   boot)
     l="$(cat "$VAR/gfx-level" 2>/dev/null || echo 0)"
+    # из меню GRUB можно принудительно задать уровень: rectless.gfx=0|1|2 (режим совместимости)
+    c="$(sed -n 's/.*rectless\.gfx=\([0-9]\).*/\1/p' "${RLS_CMDLINE:-/proc/cmdline}" 2>/dev/null)"
+    [ -n "$c" ] && l="$c"
     case "$l" in 1|2) ;; *) l=0 ;; esac
     apply "$l"; say "boot: графический уровень $l"
     ;;
