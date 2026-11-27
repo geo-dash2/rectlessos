@@ -11,6 +11,7 @@
   border: none;
   border-radius: 0;
 }
+/* только сама панель: скругление и тонкая фиолетовая каёмка */
 #XfcePanelWindow.xfce4-panel.background,
 #XfcePanelWindow.background,
 XfcePanelWindow.xfce4-panel.background {
@@ -67,4 +68,26 @@ XfdesktopIconView.view {
 XfdesktopIconView.view:selected {
   background-color: rgba(160, 112, 255, 0.45);
   border-radius: 8px;
+}
+
+/* ===== RectlessOS: экран входа ===== */
+#login_window {
+  background-color: rgba(14, 11, 22, 0.90);
+  border: 1px solid rgba(160, 112, 255, 0.35);
+  border-radius: 20px;
+  padding: 18px 26px;
+}
+#login_window #user_image {
+  border-radius: 40px;
+}
+#panel_window {
+  background-color: rgba(14, 11, 22, 0.55);
+  color: #ece7fa;
+}
+#login_window button.suggested-action,
+#login_window #login_button {
+  background-color: #8a5ae6;
+  background-image: none;
+  color: #ffffff;
+  border-radius: 12px;
 }

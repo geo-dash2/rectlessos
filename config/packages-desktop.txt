@@ -39,3 +39,19 @@ xfce4-pulseaudio-plugin
 xfce4-power-manager-plugins
 xfce4-notifyd
 x11-xserver-utils
+
+# 0.2.2: то, что при --no-install-recommends могло не поставиться, а без него сеанс падает на части железа
+dbus-x11
+dbus-user-session
+libpam-systemd
+polkitd
+pkexec
+accountsservice
+xdg-utils
+xdg-user-dirs
+libgl1-mesa-dri
+libglx-mesa0
+libegl-mesa0
+xserver-xorg-input-libinput
+xserver-xorg-video-fbdev
+xserver-xorg-video-vesa

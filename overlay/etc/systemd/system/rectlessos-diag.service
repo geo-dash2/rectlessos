@@ -1,0 +1,10 @@
+[Unit]
+Description=RectlessOS: save diagnostic logs to the USB drive
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/rectlessos-diag
+
+[Install]
+WantedBy=multi-user.target

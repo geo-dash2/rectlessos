@@ -1,11 +1,23 @@
 #!/bin/bash
-# Ставит обои RectlessOS на каждый монитор один раз (названия мониторов у всех разные,
-# заранее в конфиге их не угадать; xfdesktop сам кладёт туда свою картинку по умолчанию).
-# Дальше выбор пользователя не трогаем — помним, для каких мониторов уже сделали.
+# Запускается при входе в рабочий стол (автозапуск XFCE).
+#  1) Если охранник сеанса включил защитный режим, выключает композитинг xfwm4
+#     (и возвращает обратно, когда защитный режим снят).
+#  2) Ставит обои RectlessOS на каждый монитор один раз (названия мониторов у всех разные,
+#     заранее в конфиге их не угадать; xfdesktop сам кладёт туда свою картинку по умолчанию).
+#     Дальше выбор пользователя не трогаем — помним, для каких мониторов уже сделали.
+command -v xfconf-query >/dev/null || exit 0
+FLAG="$HOME/.config/rectlessos/compositing-off-by-guard"
+mkdir -p "$(dirname "$FLAG")"
+lvl="$(cat /run/rectlessos-guard/level 2>/dev/null || echo 0)"
+if [ "$lvl" != 0 ]; then
+  xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null && touch "$FLAG"
+elif [ -f "$FLAG" ]; then
+  xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s true 2>/dev/null; rm -f "$FLAG"
+fi
+
 IMG=/usr/share/backgrounds/rectlessos.png
-command -v xrandr >/dev/null && command -v xfconf-query >/dev/null || exit 0
-STATE="$HOME/.config/rectlessos/wallpaper-monitors"
-mkdir -p "$(dirname "$STATE")"; touch "$STATE"
+command -v xrandr >/dev/null || exit 0
+STATE="$HOME/.config/rectlessos/wallpaper-monitors"; touch "$STATE"
 sleep 3
 for m in $(xrandr --listactivemonitors 2>/dev/null | awk 'NR>1{print $NF}'); do
   base="/backdrop/screen0/monitor$m/workspace0"

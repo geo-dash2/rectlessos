@@ -6,7 +6,7 @@
 set -euo pipefail
 
 OS_NAME="${OS_NAME:-RectlessOS}"
-OS_VERSION="${OS_VERSION:-0.2.0}"
+OS_VERSION="${OS_VERSION:-0.2.3}"
 PROFILE="${PROFILE:-desktop}"            # desktop | minimal
 SUITE="${SUITE:-noble}"
 MIRROR="${MIRROR:-http://archive.ubuntu.com/ubuntu}"
@@ -45,9 +45,9 @@ debootstrap --variant=minbase --components=main,universe "$SUITE" "$ROOTFS" "$MI
 
 log "Настраиваю chroot"
 cat > "$ROOTFS/etc/apt/sources.list" <<EOF
-deb $MIRROR $SUITE main universe multiverse
-deb $MIRROR $SUITE-updates main universe multiverse
-deb http://security.ubuntu.com/ubuntu $SUITE-security main universe multiverse
+deb $MIRROR $SUITE main universe multiverse restricted
+deb $MIRROR $SUITE-updates main universe multiverse restricted
+deb http://security.ubuntu.com/ubuntu $SUITE-security main universe multiverse restricted
 EOF
 echo "${OS_NAME,,}" > "$ROOTFS/etc/hostname"
 printf '127.0.0.1 localhost\n127.0.1.1 %s\n' "${OS_NAME,,}" > "$ROOTFS/etc/hosts"
@@ -73,6 +73,17 @@ chroot "$ROOTFS" /usr/bin/env DEBIAN_FRONTEND=noninteractive LC_ALL=C bash -e <<
 apt-get update
 apt-get install -y --no-install-recommends $PKGS
 EOF
+
+if [ "$PROFILE" = "desktop" ]; then
+  log "Ставлю проприетарный драйвер NVIDIA (у nouveau на RTX 30xx/40xx вход в рабочий стол часто падает)"
+  NV="${NVIDIA_VER:-550}"
+  chroot "$ROOTFS" /usr/bin/env DEBIAN_FRONTEND=noninteractive LC_ALL=C bash <<EOF || echo "ВНИМАНИЕ: драйвер NVIDIA не поставился, сборка продолжается с nouveau"
+set -e
+# готовые модули ядра (без DKMS и компиляции в chroot) + пользовательская часть драйвера
+apt-get install -y --no-install-recommends linux-modules-nvidia-$NV-generic
+apt-get install -y --no-install-recommends nvidia-kernel-common-$NV xserver-xorg-video-nvidia-$NV libnvidia-gl-$NV nvidia-utils-$NV
+EOF
+fi
 
 log "Накладываю свои файлы и настройки"
 cp -a "$HERE/overlay/." "$ROOTFS/"
@@ -100,9 +111,9 @@ ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf.target
 systemctl enable NetworkManager systemd-resolved 2>/dev/null || true
 command -v lightdm >/dev/null && systemctl enable lightdm 2>/dev/null || true
-chmod +x /usr/local/sbin/rectlessos-grow /usr/local/sbin/rectlessos-theme /usr/local/bin/rectlessos-session-setup
+chmod +x /usr/local/sbin/rectlessos-grow /usr/local/sbin/rectlessos-theme /usr/local/sbin/rectlessos-diag /usr/local/sbin/rectlessos-session-guard /usr/local/sbin/rectlessos-session-start /usr/local/sbin/rectlessos-session-stop /usr/local/bin/rectlessos-session-setup
 [ -d /usr/share/themes/Materia-dark ] && /usr/local/sbin/rectlessos-theme
-systemctl enable rectlessos-grow.service 2>/dev/null || true
+systemctl enable rectlessos-grow.service rectlessos-diag.service rectlessos-guard.service 2>/dev/null || true
 update-initramfs -u -k all
 apt-get clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

@@ -1,0 +1,11 @@
+[Unit]
+Description=RectlessOS: restore the graphics safety level before the login screen
+After=local-fs.target
+Before=display-manager.service lightdm.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/rectlessos-session-guard boot
+
+[Install]
+WantedBy=multi-user.target

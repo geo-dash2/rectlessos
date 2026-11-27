@@ -1,0 +1,77 @@
+#!/bin/bash
+# Диагностика: складывает журналы системы на флешку, в раздел sys (FAT32, метка RECTLESS),
+# в папку RectlessOS/logs — их можно открыть прямо из Windows.
+#   rectlessos-diag           - служба: сборы через 15 с, 45 с, 2 мин и 5 мин после старта
+#   rectlessos-diag now ТЕГ   - собрать сейчас (зовёт охранник сеанса, когда рабочий стол упал)
+# Раздел sys система уже держит смонтированным только для чтения, поэтому второй
+# «mount -o rw» невозможен (ядро отказывает). Вместо этого на время записи делаем
+# remount,rw, а потом возвращаем только чтение.
+LABEL=RECTLESS
+MNT=/run/rectlessos-diag
+exec 9>/run/rectlessos-diag.lock
+
+collect() {
+  local tag="${1//[^A-Za-z0-9_-]/_}" dev mp="" own=0 remounted=0 line t o d h
+  dev="$(blkid -L "$LABEL" 2>/dev/null)"; [ -n "$dev" ] || return 0
+  flock -w 120 9 || return 0
+  while read -r t o; do                 # предпочитаем уже доступную на запись точку монтирования
+    [ -z "$mp" ] && mp="$t"
+    case ",$o," in *,rw,*) mp="$t"; break ;; esac
+  done < <(findmnt -rn -o TARGET,OPTIONS -S "$dev" 2>/dev/null)
+  if [ -z "$mp" ]; then
+    mkdir -p "$MNT"
+    mount -t vfat -o rw,noatime,iocharset=utf8 "$dev" "$MNT" 2>/dev/null || return 0
+    mp="$MNT"; own=1
+  else
+    o="$(findmnt -rn -o OPTIONS "$mp" 2>/dev/null | head -1)"
+    case ",$o," in
+      *,ro,*) mount -o remount,rw "$mp" 2>/dev/null || return 0; remounted=1 ;;
+    esac
+  fi
+  d="$mp/RectlessOS/logs"
+  if mkdir -p "$d" 2>/dev/null; then
+    h="$(getent passwd user | cut -d: -f6)"; h="${h:-/home/user}"
+    {
+      echo "== $(date -u) | uptime: $(cut -d' ' -f1 /proc/uptime) c | метка: $tag =="
+      echo "-- версия --";   cat /etc/issue.net
+      echo "-- cmdline --";  cat /proc/cmdline
+      echo "-- видеокарты --"; lspci -nnk 2>/dev/null | grep -iE -A4 'vga|3d|display'
+      echo "-- NVIDIA --"; cat /proc/driver/nvidia/version 2>&1; dpkg -l 2>/dev/null | grep -iE "nvidia" | awk '{print $2,$3}' | head -20
+      echo "-- /dev/dri --"; ls -l /dev/dri 2>&1; cat /sys/class/drm/*/status 2>/dev/null | sort | uniq -c
+      echo "-- модули видео --"; lsmod 2>/dev/null | grep -iE 'drm|nouveau|amdgpu|radeon|i915|nvidia|simpledrm|efifb|vesafb|fb'
+      echo "-- графический уровень охранника --"; cat /run/rectlessos-guard/level 2>&1; cat /run/rectlessos-guard/fails 2>&1
+      cat /var/log/rectlessos-guard.log 2>&1
+      echo "-- файлы Xorg conf --"; ls -l /etc/X11/xorg.conf.d/ 2>&1
+      echo "-- сеансы xsessions --"; ls /usr/share/xsessions/ 2>&1
+      echo "-- пользователь/home --"; id user 2>&1; ls -ld /home /home/user 2>&1; ls -la "$h" 2>&1 | head -40
+      echo "-- диски --"; df -h 2>&1; findmnt -rn -o TARGET,SOURCE,FSTYPE,OPTIONS 2>/dev/null | grep -E ' /(home|cdrom|run/live)|casper|loop' 
+      echo "-- память --";   free -m
+      echo "-- процессы --"; ps -eo pid,user,etime,pcpu,pmem,comm --sort=-pcpu | head -30
+      echo "-- сеансы --";   loginctl list-sessions --no-legend 2>&1
+      echo "-- упавшие службы --"; systemctl --failed --no-pager 2>&1
+      echo "-- lightdm --";  systemctl status lightdm --no-pager -l 2>&1 | tail -30
+      echo "-- ядро: ошибки --"; dmesg --level=err,warn 2>/dev/null | tail -150
+      echo "-- падения --";  coredumpctl list --no-pager 2>/dev/null | tail -20
+    } > "$d/state-$tag.txt" 2>&1
+    journalctl -b --no-pager 2>/dev/null | tail -1500 > "$d/journal-$tag.txt"
+    for f in /var/log/lightdm/*.log; do
+      [ -f "$f" ] && cat "$f" > "$d/lightdm-$(basename "$f" .log)-$tag.log" 2>/dev/null
+    done
+    for f in /var/log/Xorg.*.log /var/log/Xorg.*.log.old; do
+      [ -f "$f" ] && cat "$f" > "$d/$(basename "$f")-$tag.txt" 2>/dev/null
+    done
+    tail -400 "$h/.xsession-errors"     > "$d/xsession-errors-$tag.txt"     2>/dev/null
+    tail -200 "$h/.xsession-errors.old" > "$d/xsession-errors-old-$tag.txt" 2>/dev/null
+    sync
+  fi
+  [ "$remounted" = 1 ] && mount -o remount,ro "$mp" 2>/dev/null
+  [ "$own" = 1 ] && umount "$MNT" 2>/dev/null
+  return 0
+}
+
+if [ "${1:-}" = now ]; then collect "${2:-now}"; exit 0; fi
+sleep 15;  collect t15
+sleep 30;  collect t45
+sleep 75;  collect t2m
+sleep 180; collect t5m
+exit 0

@@ -1,0 +1,72 @@
+#!/bin/bash
+# Охранник сеанса. Запуск:
+#   rectlessos-session-guard boot   - при загрузке: вернуть сохранённый графический уровень
+#   rectlessos-session-guard start  - lightdm: сеанс пользователя начинается
+#   rectlessos-session-guard stop   - lightdm: сеанс закончился
+# Если сеанс умер быстрее чем за 20 секунд, считаем это падением рабочего стола и поднимаем
+# уровень защиты (на следующем входе применится он):
+#   0 обычный режим
+#   1 X без аппаратного ускорения + выключен композитинг xfwm4 + настройки xfce сброшены
+#     (старые лежат в ~/.config/xfce4.broken.*)
+#   2 драйвер fbdev вместо modesetting
+# Уровень, при котором сеанс наконец прожил дольше 20 секунд, запоминается в
+# /var/lib/rectlessos/gfx-level. Сбросить: sudo rm /var/lib/rectlessos/gfx-level
+# Скрипт всегда завершается кодом 0, чтобы никогда не мешать входу.
+ETC="${RLS_ETC:-/etc}"; RUN="${RLS_RUN:-/run}/rectlessos-guard"
+VAR="${RLS_VAR:-/var/lib/rectlessos}"; SHARE="${RLS_SHARE:-/usr/share/rectlessos/xorg}"
+LOG="${RLS_LOG:-/var/log/rectlessos-guard.log}"
+XD="$ETC/X11/xorg.conf.d"; BASE="$XD/10-rectlessos-modesetting.conf"; LIMIT=20
+mkdir -p "$RUN" "$VAR" "$XD" 2>/dev/null
+say() { echo "$(date '+%F %T') $*" >> "$LOG" 2>/dev/null; }
+level() { cat "$RUN/level" 2>/dev/null || echo 0; }
+
+apply() {
+  local l="$1"
+  rm -f "$XD/90-rectlessos-safe.conf"
+  if [ "$l" = 2 ]; then
+    [ -f "$BASE" ] && mv -f "$BASE" "$BASE.off"
+    install -m644 "$SHARE/safe-fbdev.conf" "$XD/90-rectlessos-safe.conf"
+  else
+    [ -f "$BASE.off" ] && mv -f "$BASE.off" "$BASE"
+    [ "$l" = 1 ] && install -m644 "$SHARE/safe-noaccel.conf" "$XD/90-rectlessos-safe.conf"
+  fi
+  echo "$l" > "$RUN/level"
+}
+
+case "${1:-}" in
+  boot)
+    l="$(cat "$VAR/gfx-level" 2>/dev/null || echo 0)"
+    case "$l" in 1|2) ;; *) l=0 ;; esac
+    apply "$l"; say "boot: графический уровень $l"
+    ;;
+  start)
+    date +%s > "$RUN/started"
+    ;;
+  stop)
+    start="$(cat "$RUN/started" 2>/dev/null || echo 0)"; rm -f "$RUN/started"
+    now="$(date +%s)"
+    case "$start" in ''|*[!0-9]*|0) exit 0 ;; esac
+    if [ $(( now - start )) -ge "$LIMIT" ]; then
+      # сеанс прожил нормально; если до этого были падения, запоминаем рабочий уровень
+      if [ -f "$RUN/fails" ]; then
+        l="$(level)"; [ "$l" != 0 ] && echo "$l" > "$VAR/gfx-level"
+        say "сеанс ок на уровне $l, запомнено"; rm -f "$RUN/fails"
+      fi
+      exit 0
+    fi
+    n=$(( $(cat "$RUN/fails" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$RUN/fails"
+    say "сеанс пользователя ${USER:-?} умер за $(( now - start )) с (падение №$n, уровень $(level))"
+    ( /usr/local/sbin/rectlessos-diag now "crash$n" >/dev/null 2>&1 & )
+    if [ "$n" = 1 ]; then
+      apply 1
+      h="$(getent passwd "${USER:-user}" | cut -d: -f6)"
+      if [ -n "$h" ] && [ -d "$h/.config/xfce4" ]; then
+        mv "$h/.config/xfce4" "$h/.config/xfce4.broken.$now" 2>/dev/null && say "настройки xfce сброшены"
+        rm -rf "$h/.cache/sessions" 2>/dev/null
+      fi
+    elif [ "$n" = 2 ]; then
+      apply 2
+    fi
+    ;;
+esac
+exit 0
